@@ -1,0 +1,30 @@
+{
+  "name": "aequo",
+  "version": "0.0.1",
+  "description": "Æquo est une plateforme DeFi solidaire qui permet à n’importe quel utilisateur d’investir simplement dans des stablecoins via le protocole AAVE, tout en reversant automatiquement une partie des intérêts générés à une association à impact positif.",
+  "keywords": [
+    "AAVE",
+    "WEB3",
+    "React-Router",
+    "typescript",
+    "tailwind",
+    "blockchain",
+    "eth",
+    "alyra"
+  ],
+  "homepage": "https://github.com/CygiK/Aequo#readme",
+  "bugs": {
+    "url": "https://github.com/CygiK/Aequo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CygiK/Aequo.git"
+  },
+  "license": "ISC",
+  "author": "cygik",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
