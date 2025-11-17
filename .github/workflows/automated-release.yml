@@ -78,13 +78,13 @@ jobs:
           git commit -m "chore(release): bump frontend version to ${{ steps.bump.outputs.new_version }}"
           git push -u origin "$BRANCH"
 
-      # --- 7. Création de la Pull Request vers main ---
+      # --- 7. Création de la Pull Request vers master ---
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || github.token }}
         run: |
           gh pr create \
-            --base main \
+            --base master \
             --head "release/${{ steps.bump.outputs.new_version }}" \
             --title "🚀 Release Frontend v${{ steps.bump.outputs.new_version }}" \
             --body "## 🎉 Release Frontend v${{ steps.bump.outputs.new_version }}
@@ -93,7 +93,7 @@ jobs:
 
           - 📦 Package : **Frontend**
           - 🌿 À partir de : **develop**
-          - 🎯 Vers : **main**
+          - 🎯 Vers : **master**
           - 🔖 Type : **${{ github.event.inputs.release_type }}**
           - 🆕 Nouvelle version : **${{ steps.bump.outputs.new_version }}**
 
