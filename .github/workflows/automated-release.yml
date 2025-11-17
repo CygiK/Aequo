@@ -16,6 +16,9 @@ on:
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       # --- 1. Checkout develop (base de la release) ---
@@ -24,6 +27,7 @@ jobs:
         with:
           ref: develop
           fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
 
       # --- 2. Setup Node.js ---
       - name: Setup Node.js
@@ -63,6 +67,8 @@ jobs:
 
       # --- 6. Commit + création branche release/x.x.x ---
       - name: Commit version bump and create branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH="release/${{ steps.bump.outputs.new_version }}"
           git config user.name "github-actions[bot]"
@@ -70,12 +76,12 @@ jobs:
           git checkout -b "$BRANCH"
           git add frontend/package.json
           git commit -m "chore(release): bump frontend version to ${{ steps.bump.outputs.new_version }}"
-          git push origin "$BRANCH"
+          git push -u origin "$BRANCH"
 
       # --- 7. Création de la Pull Request vers main ---
       - name: Create Pull Request
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || github.token }}
         run: |
           gh pr create \
             --base main \

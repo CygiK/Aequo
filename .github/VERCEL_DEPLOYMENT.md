@@ -4,19 +4,31 @@
 
 Pour que le déploiement automatique sur Vercel fonctionne, vous devez configurer les secrets GitHub suivants :
 
-### 1. Obtenir le token Vercel
+### 1. Créer un Personal Access Token (PAT) GitHub
+
+1. Allez sur [GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)](https://github.com/settings/tokens)
+2. Cliquez sur "Generate new token (classic)"
+3. Donnez un nom au token : `Aequo Release Workflow`
+4. Sélectionnez les permissions suivantes :
+   - ✅ `repo` (Full control of private repositories)
+   - ✅ `workflow` (Update GitHub Action workflows)
+5. Cliquez sur "Generate token"
+6. **Copiez le token immédiatement** (vous ne pourrez plus le revoir)
+
+### 2. Obtenir le token Vercel
 
 1. Allez sur [Vercel Tokens](https://vercel.com/account/tokens)
 2. Créez un nouveau token
 3. Copiez le token généré
 
-### 2. Configurer les secrets GitHub
+### 3. Configurer les secrets GitHub
 
 Allez dans les paramètres de votre repository GitHub :
 `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
 
-Ajoutez le secret suivant :
+Ajoutez les secrets suivants :
 
+- **`PAT_TOKEN`** : Votre Personal Access Token GitHub (créé à l'étape 1)
 - **`VERCEL_TOKEN`** : Votre token Vercel
 
 ## 🚀 Workflows disponibles
@@ -128,3 +140,23 @@ Vérifiez que :
 - La branche `develop` existe
 - La branche `main` existe
 - Vous avez les permissions nécessaires
+
+### Erreur 403 lors du push de la branche
+
+Si vous rencontrez l'erreur :
+```
+remote: Permission to CygiK/Aequo.git denied to github-actions[bot].
+fatal: unable to access 'https://github.com/CygiK/Aequo/': The requested URL returned error: 403
+```
+
+**Solution :**
+1. Créez un Personal Access Token (PAT) comme indiqué dans les prérequis
+2. Ajoutez-le comme secret `PAT_TOKEN` dans votre repository
+3. Le workflow utilisera ce token pour pousser les changements
+
+**Alternative (moins sécurisée) :**
+Dans `Settings` > `Actions` > `General` > `Workflow permissions`, sélectionnez :
+- ✅ "Read and write permissions"
+- ✅ "Allow GitHub Actions to create and approve pull requests"
+
+⚠️ Cette méthode donne plus de permissions aux workflows, utilisez plutôt le PAT.
