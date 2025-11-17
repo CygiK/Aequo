@@ -1,4 +1,4 @@
-name: Automated Release
+name: Automated Release Frontend
 
 on:
   workflow_dispatch:
@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       # --- 1. Checkout develop (base de la release) ---
       - name: Checkout develop
         uses: actions/checkout@v4
@@ -26,22 +25,21 @@ jobs:
           ref: develop
           fetch-depth: 0
 
-      # --- 2. Lire la version actuelle ---
+      # --- 2. Setup Node.js ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # --- 3. Lire la version actuelle du frontend ---
       - name: Read current version
         id: read_version
         run: |
-          if [ ! -f VERSION ]; then
-            echo "ERROR: VERSION file not found"
-            exit 1
-          fi
-          version=$(cat VERSION)
-          if [ -z "$version" ]; then
-            echo "ERROR: VERSION file is empty"
-            exit 1
-          fi
+          cd frontend
+          version=$(node -p "require('./package.json').version")
           echo "version=$version" >> $GITHUB_OUTPUT
 
-      # --- 3. Calculer la nouvelle version ---
+      # --- 4. Calculer la nouvelle version ---
       - name: Calculate new version
         id: bump
         run: |
@@ -57,37 +55,43 @@ jobs:
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      # --- 4. Mise à jour du fichier VERSION ---
-      - name: Update VERSION file
-        run: echo "${{ steps.bump.outputs.new_version }}" > VERSION
+      # --- 5. Mise à jour de la version dans package.json ---
+      - name: Update package.json version
+        run: |
+          cd frontend
+          npm version ${{ steps.bump.outputs.new_version }} --no-git-tag-version
 
-      # --- 5. Commit + création branche release/x.x.x ---
+      # --- 6. Commit + création branche release/x.x.x ---
       - name: Commit version bump and create branch
         run: |
           BRANCH="release/${{ steps.bump.outputs.new_version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add VERSION
-          git commit -m "chore(release): bump version to ${{ steps.bump.outputs.new_version }}"
+          git add frontend/package.json
+          git commit -m "chore(release): bump frontend version to ${{ steps.bump.outputs.new_version }}"
           git push origin "$BRANCH"
 
-      # --- 6. Création de la Pull Request vers master ---
-      - name: Open Pull Request to master
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: release/${{ steps.bump.outputs.new_version }}
-          title: "Release ${{ steps.bump.outputs.new_version }}"
-          base: master
-          body: |
-            ## 🎉 Release ${{ steps.bump.outputs.new_version }}
+      # --- 7. Création de la Pull Request vers main ---
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "release/${{ steps.bump.outputs.new_version }}" \
+            --title "🚀 Release Frontend v${{ steps.bump.outputs.new_version }}" \
+            --body "## 🎉 Release Frontend v${{ steps.bump.outputs.new_version }}
 
-            Release générée automatiquement.
+          Release générée automatiquement pour le déploiement sur Vercel.
 
-            - À partir de : **develop**
-            - Vers : **master**
-            - Type : **${{ github.event.inputs.release_type }}**
-            - Nouvelle version : **${{ steps.bump.outputs.new_version }}**
+          - 📦 Package : **Frontend**
+          - 🌿 À partir de : **develop**
+          - 🎯 Vers : **main**
+          - 🔖 Type : **${{ github.event.inputs.release_type }}**
+          - 🆕 Nouvelle version : **${{ steps.bump.outputs.new_version }}**
 
-            Merci de valider, vérifier les tests et merger.
+          ### Actions à effectuer
+          - [ ] Vérifier les tests
+          - [ ] Valider les changements
+          - [ ] Merger pour déclencher le déploiement Vercel"
