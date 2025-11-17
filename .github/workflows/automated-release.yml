@@ -1,0 +1,103 @@
+name: Automated Release Frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Release type (patch/minor/major)"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      # --- 1. Checkout develop (base de la release) ---
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # --- 2. Setup Node.js ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # --- 3. Lire la version actuelle du frontend ---
+      - name: Read current version
+        id: read_version
+        run: |
+          cd frontend
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      # --- 4. Calculer la nouvelle version ---
+      - name: Calculate new version
+        id: bump
+        run: |
+          OLD_VERSION="${{ steps.read_version.outputs.version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$OLD_VERSION"
+
+          case "${{ github.event.inputs.release_type }}" in
+            patch) PATCH=$((PATCH+1));;
+            minor) MINOR=$((MINOR+1)); PATCH=0;;
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      # --- 5. Mise à jour de la version dans package.json ---
+      - name: Update package.json version
+        run: |
+          cd frontend
+          npm version ${{ steps.bump.outputs.new_version }} --no-git-tag-version
+
+      # --- 6. Commit + création branche release/x.x.x ---
+      - name: Commit version bump and create branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="release/${{ steps.bump.outputs.new_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add frontend/package.json
+          git commit -m "chore(release): bump frontend version to ${{ steps.bump.outputs.new_version }}"
+          git push -u origin "$BRANCH"
+
+      # --- 7. Création de la Pull Request vers master ---
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || github.token }}
+        run: |
+          gh pr create \
+            --base master \
+            --head "release/${{ steps.bump.outputs.new_version }}" \
+            --title "🚀 Release Frontend v${{ steps.bump.outputs.new_version }}" \
+            --body "## 🎉 Release Frontend v${{ steps.bump.outputs.new_version }}
+
+          Release générée automatiquement pour le déploiement sur Vercel.
+
+          - 📦 Package : **Frontend**
+          - 🌿 À partir de : **develop**
+          - 🎯 Vers : **master**
+          - 🔖 Type : **${{ github.event.inputs.release_type }}**
+          - 🆕 Nouvelle version : **${{ steps.bump.outputs.new_version }}**
+
+          ### Actions à effectuer
+          - [ ] Vérifier les tests
+          - [ ] Valider les changements
+          - [ ] Merger pour déclencher le déploiement Vercel"

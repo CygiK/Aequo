@@ -1,0 +1,37 @@
+name: Hardhat Tests
+
+on:
+  push:
+    branches:
+      - "master"
+      - "develop"
+      - "feature/*"
+      - "hotfix/*"
+      - "release/*"
+
+  pull_request:
+    branches:
+      - "master"
+      - "develop"
+      - "release/*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./contracts
+
+      - name: Run Hardhat tests
+        run: npx hardhat test
+        working-directory: ./contracts
