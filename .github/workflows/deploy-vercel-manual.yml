@@ -1,0 +1,112 @@
+name: Déploiement Manuel Vercel
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branche à déployer'
+        required: true
+        default: 'develop'
+      environment:
+        description: 'Environnement de déploiement'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+      add_alias:
+        description: 'Alias personnalisé (optionnel, ex: demo-v2)'
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout specified branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Build React Router app
+        run: npm run build
+        working-directory: ./frontend
+        env:
+          NODE_ENV: production
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Display deployment info
+        run: |
+          echo "🌿 Branche: ${{ github.event.inputs.branch }}"
+          echo "🎯 Environnement: ${{ github.event.inputs.environment }}"
+          echo "🏷️  Alias: ${{ github.event.inputs.add_alias || 'aucun' }}"
+
+      - name: Pull Vercel Environment Information
+        run: |
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+          fi
+        working-directory: ./frontend
+
+      - name: Build Project Artifacts
+        run: |
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel build --token=${{ secrets.VERCEL_TOKEN }}
+          fi
+        working-directory: ./frontend
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          else
+            DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          fi
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "🌐 URL de déploiement: $DEPLOY_URL"
+        working-directory: ./frontend
+
+      - name: Add custom alias
+        if: github.event.inputs.add_alias != ''
+        run: |
+          vercel alias set ${{ steps.deploy.outputs.url }} ${{ github.event.inputs.add_alias }} --token=${{ secrets.VERCEL_TOKEN }}
+          echo "✅ Alias configuré: ${{ github.event.inputs.add_alias }}"
+        working-directory: ./frontend
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🎉 Déploiement manuel réussi" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Détails du déploiement" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Paramètre | Valeur |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branche** | \`${{ github.event.inputs.branch }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environnement** | ${{ github.event.inputs.environment == 'production' && '🚀 Production' || '🔍 Preview' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **URL principale** | ${{ steps.deploy.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ -n "${{ github.event.inputs.add_alias }}" ]]; then
+            echo "| **Alias personnalisé** | \`${{ github.event.inputs.add_alias }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Liens rapides" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 [Ouvrir l'application](${{ steps.deploy.outputs.url }})" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 [Dashboard Vercel](https://vercel.com/dashboard)" >> $GITHUB_STEP_SUMMARY
