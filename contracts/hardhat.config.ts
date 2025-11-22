@@ -23,10 +23,20 @@ export default defineConfig({
     hardhatMainnet: {
       type: "edr-simulated",
       chainType: "l1",
+      forking: {
+        url: configVariable("MAINNET_RPC_URL"),
+        blockNumber: 19000000,
+      },
+      hardfork: "cancun",
+      initialBaseFeePerGas: 0,
     },
     hardhatOp: {
       type: "edr-simulated",
       chainType: "op",
+      forking: {
+        url: configVariable("MAINNET_RPC_URL"),
+        blockNumber: 17500000,
+      },
     },
     sepolia: {
       type: "http",
