@@ -32,9 +32,7 @@ jobs:
         run: npm ci
         working-directory: ./contracts
 
-      - name: Run Hardhat tests
-        env: 
-          HARDHAT_VAR_MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
-        run: npx hardhat test --network hardhatOp --coverage
+      - name: Run Hardhat tests with coverage
+        run: MAINNET_RPC_URL='${{ secrets.MAINNET_RPC_URL }}' npx hardhat test --network hardhatMainnet --coverage
         working-directory: ./contracts
         continue-on-error: true
