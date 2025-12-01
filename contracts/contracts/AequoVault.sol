@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@aave/core-v3/contracts/interfaces/IPool.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 contract AequoVault is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -20,20 +19,18 @@ contract AequoVault is Ownable, ReentrancyGuard {
     IERC20 public immutable aToken; // aToken Aave correspondant à l'asset
 
     uint256 public totalAssets; // Total des dépôts (sans les intérêts)
-    uint256 public totalInterestDistributed; // Total des intérêts déjà distribués
     
     // Pourcentage des intérêts reversés aux associations (en basis points)
     // 2000 = 20%, 500 = 5%, 10000 = 100%
     uint256 public defaultFeesPercentage = 2000; // 20% par défaut
     uint256 private constant BASIS_POINTS = 10000;
     uint256 private constant MAX_FEES = 5000; // 50% maximum
+    uint256 private constant MIN_FEES = 100; // 1% minimum
 
     struct VaultUserInfo {
         uint256 depositedAmount;
         address associatedAsso;
         uint256 feesPercentage; // Pourcentage personnalisé (0 = utiliser default)
-        uint256 lastClaimTimestamp; // Timestamp du dernier claim
-        uint256 interestDebt; // Pour suivre les intérêts déjà réclamés
     }
 
     mapping(address => VaultUserInfo) public vaultUserInfo;
@@ -81,6 +78,9 @@ contract AequoVault is Ownable, ReentrancyGuard {
     error NoInterestToClaim();
     error FeesTooHigh(
         string message, uint256 fees, uint256 maxFees
+    );
+    error FeesTooLow(
+        string message, uint256 fees, uint256 minFees
     );
     error NoChange();
     error WithdrawFailed();
@@ -150,6 +150,7 @@ contract AequoVault is Ownable, ReentrancyGuard {
         );
         
         VaultUserInfo storage userInfo = vaultUserInfo[msg.sender];
+
         if(userInfo.depositedAmount == 0) revert InvalidAmount(
             "User has no deposits",
             userInfo.depositedAmount
@@ -179,18 +180,6 @@ contract AequoVault is Ownable, ReentrancyGuard {
         userInfo.depositedAmount -= amount;
         totalAssets -= amount;
 
-        if(totalInterest > 0) {
-            totalInterestDistributed += totalInterest;
-
-            if(userInfo.depositedAmount == 0) {
-                // Si l'utilisateur retire tout son principal, réinitialiser son interestDebt
-                userInfo.interestDebt = 0;
-            } else {
-                // Mettre à jour l'interestDebt pour éviter de redemander les mêmes intérêts
-                userInfo.interestDebt += totalInterest;
-            }
-        }
-
         // Retirer d'Aave
         uint256 withdrawnAmount = aavePool.withdraw(address(asset), totalToWithdraw, address(this));
         if (withdrawnAmount < totalToWithdraw) revert WithdrawFailed();
@@ -211,7 +200,7 @@ contract AequoVault is Ownable, ReentrancyGuard {
     /**
      * @notice Réclame uniquement les intérêts sans toucher au principal
      */
-    function claimInterest() external nonReentrant { // reflechir a l'utilise de cette function.
+    function claimInterest() external nonReentrant { // reflechir a l'utilité de cette function.
         VaultUserInfo storage userInfo = vaultUserInfo[msg.sender];
         
         if (userInfo.depositedAmount == 0) revert InsufficientBalance(
@@ -219,6 +208,7 @@ contract AequoVault is Ownable, ReentrancyGuard {
             userInfo.depositedAmount,
             1
         );
+
         if (userInfo.associatedAsso == address(0)) revert NoAssociationSet(
             "No associated association set for user"
         );
@@ -231,10 +221,6 @@ contract AequoVault is Ownable, ReentrancyGuard {
         ) = calculateInterest(msg.sender);
 
         if (totalInterest == 0) revert NoInterestToClaim();
-
-        totalInterestDistributed += totalInterest;
-        userInfo.interestDebt += totalInterest;
-        userInfo.lastClaimTimestamp = block.timestamp;
 
         // Retirer les intérêts d'Aave
         uint256 withdrawn = aavePool.withdraw(address(asset), totalInterest, address(this));
@@ -281,6 +267,12 @@ contract AequoVault is Ownable, ReentrancyGuard {
             "User fees percentage exceeds maximum",
             feesPercentage,
             MAX_FEES
+        );
+
+        if (feesPercentage != 0 && feesPercentage < MIN_FEES) revert FeesTooLow(
+            "User fees percentage below minimum",
+            feesPercentage,
+            MIN_FEES
         );
 
         vaultUserInfo[msg.sender].feesPercentage = feesPercentage;
@@ -349,30 +341,16 @@ contract AequoVault is Ownable, ReentrancyGuard {
 
         // Valeur actuelle du vault (aTokens = dépôts + intérêts)
         uint256 currentVaultValue = aToken.balanceOf(address(this));
-        uint256 accountedValue = totalAssets + totalInterestDistributed;
 
-        uint256 globalUndistributedInterest;
-
-        // Si pas de gain, pas d'intérêts
-        if (currentVaultValue > accountedValue) {
-            globalUndistributedInterest = currentVaultValue - accountedValue;
-        } else {
-            globalUndistributedInterest = 0;
-        }
-
-        if(globalUndistributedInterest == 0) {
+        if(currentVaultValue <= totalAssets) {
             return (0, 0, 0);
         }
+
+        uint256 globalInterest = currentVaultValue - totalAssets;
 
         // Part proportionnelle de l'utilisateur
         // (son dépôt * total des intérêts ) / total des actifs
-        uint256 userProportionalInterest = (userInfo.depositedAmount * globalUndistributedInterest) / totalAssets;
-
-        if(userProportionalInterest > userInfo.interestDebt) {
-            totalInterest = userProportionalInterest - userInfo.interestDebt;
-        } else {
-            return (0, 0, 0);
-        }
+        totalInterest = (userInfo.depositedAmount * globalInterest) / totalAssets;
 
         // Déterminer le pourcentage à appliquer
         uint256 feesToApply = userInfo.feesPercentage > 0 

@@ -1,0 +1,15 @@
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+
+const MAINNET_ADDRESSES = {
+  AAVE_POOL: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+  USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  AUSDC: "0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c",
+};
+
+export const AequoVaultMainnet = buildModule("AequoVaultMainnet", (m) => {
+  const aaveVault = m.contract("AequoVault", [MAINNET_ADDRESSES.AAVE_POOL, MAINNET_ADDRESSES.USDC, MAINNET_ADDRESSES.AUSDC]);
+  
+  return { aaveVault };
+});
+
+export default AequoVaultMainnet;
