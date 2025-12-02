@@ -10,5 +10,10 @@
     "hardhat": "^3.0.14",
     "typescript": "~5.8.0",
     "viem": "^2.39.0"
+  },
+  "dependencies": {
+    "@aave-dao/aave-v3-origin": "^3.5.0",
+    "@aave/core-v3": "^1.19.3",
+    "@openzeppelin/contracts": "^5.4.0"
   }
 }
