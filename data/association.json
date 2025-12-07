@@ -1,0 +1,32 @@
+{
+  "associations": [
+    {
+      "id": "0xdd2fd4581271e230360230f9337d5c0430bf44c0",
+      "wallet": "0xdd2fd4581271e230360230f9337d5c0430bf44c0",
+      "nom": "DAO Écologie Urbaine",
+      "description": "Association dédiée à la promotion de l'écologie urbaine et des espaces verts en ville. Nous organisons des projets de jardins partagés, de végétalisation des toits et de sensibilisation à la biodiversité urbaine.",
+      "type": "Environnement"
+    },
+    {
+      "id": "0xbda5747bfd65f08deb54cb465eb87d40e51b197e",
+      "wallet": "0xbda5747bfd65f08deb54cb465eb87d40e51b197e",
+      "nom": "TechForGood Collective",
+      "description": "Collectif de développeurs et designers engagés pour créer des solutions technologiques au service de l'intérêt général. Nous développons des outils open-source pour les associations et ONG.",
+      "type": "Technologie"
+    },
+    {
+      "id": "0x2546bcd3c84621e976d8185a91a922ae77ecec30",
+      "wallet": "0x2546bcd3c84621e976d8185a91a922ae77ecec30",
+      "nom": "Association des Artistes Numériques",
+      "description": "Plateforme collaborative pour les artistes du numérique. Nous organisons des expositions virtuelles, des workshops sur l'art génératif et soutenons les créateurs émergents dans le domaine des NFT et de l'art blockchain.",
+      "type": "Culture"
+    },
+    {
+      "id": "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+      "wallet": "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+      "nom": "Éducation Décentralisée",
+      "description": "Initiative pour démocratiser l'accès à l'éducation grâce à la blockchain. Nous créons des programmes de formation gratuits, délivrons des certificats vérifiables et connectons apprenants et mentors à travers le monde.",
+      "type": "Éducation"
+    }
+  ]
+}
