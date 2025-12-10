@@ -25,6 +25,7 @@ export function useVaultTransaction() {
     const { 
         writeContract: approveUsdc, 
         data: approvalHash,
+        error: approvalErrorData,
         reset: resetApproval 
     } = useWriteContract();
     
@@ -106,6 +107,9 @@ export function useVaultTransaction() {
 
     // Gestion des erreurs d'approval
     useEffect(() => {
+        console.log("approvalError", approvalError);
+        console.log("transactionState", transactionState);
+        console.log("approvalErrorData", approvalErrorData);
         if (approvalError && transactionState === 'approving') {
             setTransactionState('error');
             setPendingDepositAmount(null);

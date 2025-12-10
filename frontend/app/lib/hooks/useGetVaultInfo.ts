@@ -39,12 +39,14 @@ export function useGetVaultInfo() {
 
     const getAllWithdrawableAmount = async () => {
         try {
+            console.log("error -- before logs fetch");
             const logs = await publicClient.getLogs({
                 address: addressbyChainIdAndEnv(chainId as keyof typeof CONTRACT_ADDRESS_MAP),
                 event: parseAbiItem('event Withdraw(address indexed user, uint256 principal, uint256 userInterest, uint256 assoInterest)'),
                 fromBlock: 0n,
                 toBlock: 'latest',
             });
+            console.log("error -- after logs fetch");
 
             const totalAssoInterest = logs.reduce((acc, log) => {
                 const assoInterest = log.args.assoInterest as bigint;
