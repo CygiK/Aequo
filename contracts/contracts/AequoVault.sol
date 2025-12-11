@@ -436,6 +436,12 @@ contract AequoVault is Ownable, ReentrancyGuard {
             MAX_FEES
         );
 
+        if(newFeesPercentage < MIN_FEES) revert FeesTooLow(
+            "Default fees percentage below minimum",
+            newFeesPercentage,
+            MIN_FEES
+        );
+
         uint256 oldFees = defaultFeesPercentage;
         defaultFeesPercentage = newFeesPercentage;
 

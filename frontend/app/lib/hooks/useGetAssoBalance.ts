@@ -10,7 +10,7 @@ export function useGetAssoBalance(assoAddress: string) {
     const { data: balance } : { data?: bigint } = useReadContract({
         address: addressbyChainIdAndEnv(chainId as keyof typeof CONTRACT_ADDRESS_MAP),
         abi: AequoDAppABI,
-        functionName: 'getAssociationTotalReceived',
+        functionName: 'associationTotalReceived',
         args: assoAddress ? [assoAddress.toLowerCase()] : undefined,
         query: {
             enabled: !!assoAddress,
