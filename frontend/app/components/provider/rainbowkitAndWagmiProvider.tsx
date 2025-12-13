@@ -15,7 +15,7 @@ import {
 } from "@tanstack/react-query";
 import { isProduction } from '~/lib/utils';
 import * as React from 'react';
-import { WALLETCONNECT_PROJECT_ID } from '../../../core/web3/constants';
+import { WALLETCONNECT_PROJECT_ID, SEPOLIA_RPC_URL } from '../../../core/web3/constants';
 
 // Configuration pour le fork mainnet local
 const hardhatFork = {
@@ -35,8 +35,16 @@ const hardhatFork = {
   testnet: true,
 } as const;
 
+const sepoliaTestnet = {
+  ...sepolia,
+  rpcUrls: {
+    default: { http: [SEPOLIA_RPC_URL] },
+  },
+  testnet: true,
+} as const;
+
 const productionChains = [sepolia] as const;
-const developmentChains = [hardhatFork, sepolia] as const;
+const developmentChains = [hardhatFork, sepoliaTestnet] as const;
 const chains = isProduction ? productionChains : developmentChains;
 
 const config = getDefaultConfig({

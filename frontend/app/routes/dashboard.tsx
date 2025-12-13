@@ -1,6 +1,7 @@
 import type { Route } from "./+types/dashboard";
 import * as React from "react";
 import { useAccount } from "wagmi";
+import { parseUnits } from "viem";
 import { DashboardCard } from "~/components/shared/DashboardCard";
 import {
   Card,
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useGetAssoBalance, useAssoManagement, useGetUserData, useVaultTransaction } from "../lib/hooks";
+import { USDC_DECIMALS } from "../../core/web3/constants";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -38,14 +40,17 @@ export default function Dashboard() {
 
   const { associatAssoToUser, richAssoList} = useAssoManagement();
   const { parsedUserData, refetchUserInfo, isLoading: userDataLoading, updateTrigger } = useGetUserData();
-  const { 
-    depositeFund, 
-    withdrawFund, 
+  const {
+    depositeFund,
+    withdrawFund,
     transactionState,
     isLoading: transactionLoading,
-    depositSuccess, 
+    depositSuccess,
     withdrawSuccess,
-    resetAllStates
+    resetAllStates,
+    errorMessage,
+    hasError,
+    config
   } = useVaultTransaction();
 
   const whitelistedAssociations = richAssoList();
@@ -94,19 +99,38 @@ export default function Dashboard() {
   const assoBalance = useGetAssoBalance(associatedAsso);
 
   // Gérer le dépôt
+  // Utilise parseUnits de viem pour une conversion précise (évite les erreurs de floating point)
   const handleDeposit = () => {
     if (!depositAmount || parseFloat(depositAmount) <= 0) return;
-    
-    const amountInWei = BigInt(Math.floor(parseFloat(depositAmount) * 1e6));
-    depositeFund(amountInWei);
+
+    try {
+      // parseUnits('10.5', 6) => 10_500_000n (précis, pas de perte de précision)
+      const amountInUsdcUnits = parseUnits(depositAmount, USDC_DECIMALS);
+      console.log('[Dashboard] Dépôt demandé:', {
+        input: depositAmount,
+        amountInUsdcUnits: amountInUsdcUnits.toString(),
+        vaultAddress: config.vaultAddress
+      });
+      depositeFund(amountInUsdcUnits);
+    } catch (err) {
+      console.error('[Dashboard] Erreur de conversion du montant:', err);
+    }
   };
 
   // Gérer le retrait
   const handleWithdraw = () => {
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
-    
-    const amountInWei = BigInt(Math.floor(parseFloat(withdrawAmount) * 1e6));
-    withdrawFund(amountInWei);
+
+    try {
+      const amountInUsdcUnits = parseUnits(withdrawAmount, USDC_DECIMALS);
+      console.log('[Dashboard] Retrait demandé:', {
+        input: withdrawAmount,
+        amountInUsdcUnits: amountInUsdcUnits.toString()
+      });
+      withdrawFund(amountInUsdcUnits);
+    } catch (err) {
+      console.error('[Dashboard] Erreur de conversion du montant:', err);
+    }
   };
 
   // Gérer la sélection d'association
@@ -200,6 +224,28 @@ export default function Dashboard() {
                 <p className="font-bold text-green-900">Retrait réussi !</p>
                 <p className="text-sm text-green-700">Vos USDC et intérêts ont été retirés avec succès.</p>
               </div>
+            </div>
+          )}
+
+          {/* Message d'erreur */}
+          {hasError && errorMessage && (
+            <div className="lg:col-span-2 bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+              <svg className="w-6 h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="font-bold text-red-900">Erreur de transaction</p>
+                <p className="text-sm text-red-700">{errorMessage}</p>
+              </div>
+              <button
+                onClick={resetAllStates}
+                className="text-red-600 hover:text-red-800 p-1"
+                title="Fermer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           )}
 

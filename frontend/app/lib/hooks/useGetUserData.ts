@@ -119,7 +119,7 @@ export function useGetUserData() {
     useWatchContractEvent({
         address: contractAddress,
         abi: AEQUO_ABI,
-        eventName: 'UserAssociationUpdated',
+        eventName: 'UserSetAssociatedAsso',
         args: addressToWatch,
         onLogs() {
             setUpdateTrigger(prev => prev + 1);
@@ -130,6 +130,7 @@ export function useGetUserData() {
     // Surveiller les nouveaux blocs pour mettre à jour les intérêts AAVE en temps réel
     useWatchBlockNumber({
         enabled: isEnabled,
+        pollingInterval: 30_000,
         onBlockNumber() {
             refetchUserInfo();
             setUpdateTrigger(prev => prev + 1);

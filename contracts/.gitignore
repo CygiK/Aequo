@@ -19,5 +19,5 @@
 # Hardhat coverage reports
 /coverage
 
-# ignition deployement directory
+# ignition deployment directory
 /ignition/deployments
