@@ -4,7 +4,7 @@ import {
   getDefaultConfig,
   RainbowKitProvider,
 } from '@rainbow-me/rainbowkit';
-import { WagmiProvider } from 'wagmi';
+import { WagmiProvider, createConfig } from 'wagmi';
 import {
   hardhat,
   sepolia,
@@ -39,7 +39,10 @@ const sepoliaTestnet = {
   ...sepolia,
   rpcUrls: {
     default: { http: [SEPOLIA_RPC_URL] },
+    public: { http: [SEPOLIA_RPC_URL] },
   },
+  retryCount: 1,
+  batch: true,
   testnet: true,
 } as const;
 
